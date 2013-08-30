@@ -57,7 +57,7 @@ module AssetsHelper
   def assets
     @assets ||= $wake.renderer(
       :builds => {
-        'css'        => request.ssl? ? 'ssl' : min',
+        'css'        => request.ssl? ? 'ssl' : 'min',
         'javascript' => 'min',
         'binary'     => 'min'
       },
