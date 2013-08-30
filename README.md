@@ -92,6 +92,13 @@ assets.include_image 'logo.png', :html => {:alt => 'Logo'}
 # => '<img src="/assets/logo-2fa8d38.png" alt="Logo">'
 ```
 
+You can pass the `:inline` option to any of these to override the per-request
+`:inline` setting:
+
+```ruby
+assets.include_js 'scripts.js', :inline => true
+# => '<script type="text/javascript">alert("Hello, world!")</script>'
+
 
 ## License
 
