@@ -98,6 +98,7 @@ You can pass the `:inline` option to any of these to override the per-request
 ```ruby
 assets.include_js 'scripts.js', :inline => true
 # => '<script type="text/javascript">alert("Hello, world!")</script>'
+```
 
 
 ## License
