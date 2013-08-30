@@ -1,7 +1,7 @@
 # Wake::Assets
 
 This module helps you render links to assets managed using
-[wake][http://github.com/jcoglan/wake]. It's easy to set up and works with any
+[wake](http://github.com/jcoglan/wake). It's easy to set up and works with any
 Ruby web framework.
 
 
@@ -15,7 +15,7 @@ $ gem install wake-assets
 ## Usage
 
 These examples are based on the [wake example build
-config][https://github.com/jcoglan/wake#usage].
+config](https://github.com/jcoglan/wake#usage).
 
 #### At boot time
 
