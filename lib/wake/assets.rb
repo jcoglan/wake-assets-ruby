@@ -2,11 +2,12 @@ module Wake
   class Assets
 
     def initialize(options)
-      @pwd   = File.expand_path(options.fetch(:pwd, Dir.pwd))
-      @wake  = options.fetch(:wake, File.expand_path(DEFAULT_WAKE, @pwd))
-      @root  = Pathname.new(File.expand_path(options.fetch(:root, @pwd)))
-      @mode  = options.fetch(:mode, DEFAULT_MODE)
-      @paths = new_path_cache
+      @pwd      = File.expand_path(options.fetch(:pwd, Dir.pwd))
+      @wake     = options.fetch(:wake, File.expand_path(DEFAULT_WAKE, @pwd))
+      @root     = Pathname.new(File.expand_path(options.fetch(:root, @pwd)))
+      @mode     = options.fetch(:mode, DEFAULT_MODE)
+      @manifest = new_manifest_cache
+      @paths    = new_path_cache
 
       system(@wake, '--cache')
       read_config
@@ -61,13 +62,17 @@ module Wake
       end
 
       absolute_paths.map do |path|
+        basename = File.basename(path)
         dirname  = File.dirname(path)
         manifest = File.join(dirname, MANIFEST)
-        next path unless File.file?(manifest)
 
-        basename = File.basename(path)
-        mapping  = JSON.parse(File.read(manifest))
-        File.join(dirname, mapping[basename] || basename)
+        File.join(dirname, @manifest[manifest].fetch(basename, basename))
+      end
+    end
+
+    def new_manifest_cache
+      Hash.new do |hash, path|
+        hash[path] = File.file?(path) ? JSON.parse(File.read(path)) : {}
       end
     end
 
@@ -108,7 +113,8 @@ module Wake
           end
         end
       end
-      @paths = paths
+      @manifest = new_manifest_cache
+      @paths    = paths
     end
 
   end
