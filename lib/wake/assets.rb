@@ -1,5 +1,31 @@
+require 'base64'
+require 'erb'
+require 'json'
+require 'listen'
+require 'mime/types'
+require 'pathname'
+require 'set'
+
 module Wake
   class Assets
+
+    DEFAULT_BUILD = 'min'
+    DEFAULT_MODE  = :targets
+    DEFAULT_WAKE  = './node_modules/wake/bin/wake'
+    CACHE_FILE    = '.wake.json'
+    MANIFEST      = '.manifest.json'
+    PACKAGE_FILE  = 'package.json'
+    WAKE_FILE     = 'wake.json'
+    CONFIG_FILES  = Set.new([CACHE_FILE, MANIFEST, PACKAGE_FILE, WAKE_FILE])
+
+    CSS = 'css'
+    JS  = 'javascript'
+    IMG = 'binary'
+
+    class InvalidReference < StandardError
+    end
+
+    autoload :Renderer, File.expand_path('../assets/renderer', __FILE__)
 
     def initialize(options)
       @pwd      = File.expand_path(options.fetch(:pwd, Dir.pwd))
