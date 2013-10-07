@@ -49,10 +49,6 @@ module Wake
       listener.start
     end
 
-    def deployment?
-      @mode == :targets
-    end
-
     def paths_for(group, names, options = {})
       build = options.fetch(:build, DEFAULT_BUILD)
       unless @config[group].fetch('builds', {}).has_key?(build)
