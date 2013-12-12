@@ -28,10 +28,10 @@ require 'wake/assets'
 dev = Rails.env.development?
 
 $wake = Wake::Assets.new(
-  :wake    => File.expand_path('node_modules/.bin/wake', Rails.root),
-  :root    => File.expand_path('public', Rails.root),
-  :mode    => dev ? :sources : :targets,
-  :monitor => dev
+  :wake  => File.expand_path('node_modules/.bin/wake', Rails.root),
+  :root  => File.expand_path('public', Rails.root),
+  :mode  => dev ? :sources : :targets,
+  :cache => !dev
 )
 ```
 
@@ -41,8 +41,8 @@ The options are:
 * `:root` - the document root of your application
 * `:mode` - `:sources` if you want to render links to source files, `:targets`
   if you want optimised files
-* `:monitor` - whether to monitor the filesystem for changes, recommended in
-  development but not in production
+* `:cache` - whether to cache `wake` metadata files in memory, recommended in
+  production but not in development
 
 #### At request time
 
