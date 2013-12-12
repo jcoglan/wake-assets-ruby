@@ -30,9 +30,7 @@ module Wake
 
         tags = if options.fetch(:inline, @inline)
                  paths_for(IMG, names, options).map do |path|
-                   base64 = Base64.strict_encode64(File.read(path))
-                   mime   = MIME::Types.type_for(path).first
-                   tag :img, options, :src => "data:#{mime};base64,#{base64}"
+                   tag :img, options, :src => base64_file(path)
                  end
                else
                  urls_for(IMG, names, options).map { |url| tag :img, options, :src => url }
@@ -72,6 +70,12 @@ module Wake
       end
 
     private
+
+      def base64_file(path)
+        base64 = Base64.strict_encode64(File.read(path))
+        mime   = MIME::Types.type_for(path).first
+        "data:#{mime};base64,#{base64}"
+      end
 
       def extract_options(names)
         [names.grep(String), names.grep(Hash).first || {}]

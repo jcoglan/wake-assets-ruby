@@ -1,7 +1,6 @@
 require 'base64'
 require 'erb'
 require 'json'
-require 'listen'
 require 'mime/types'
 require 'pathname'
 require 'set'
@@ -10,13 +9,13 @@ module Wake
   class Assets
 
     DEFAULT_BUILD = 'min'
+    DEFAULT_CACHE = true
     DEFAULT_MODE  = :targets
     DEFAULT_WAKE  = './node_modules/wake/bin/wake'
     CACHE_FILE    = '.wake.json'
     MANIFEST      = '.manifest.json'
     PACKAGE_FILE  = 'package.json'
     WAKE_FILE     = 'wake.json'
-    CONFIG_FILES  = Set.new([CACHE_FILE, MANIFEST, PACKAGE_FILE, WAKE_FILE])
 
     CSS = 'css'
     JS  = 'javascript'
@@ -27,34 +26,37 @@ module Wake
 
     autoload :Renderer, File.expand_path('../assets/renderer', __FILE__)
 
-    def initialize(options)
-      @pwd      = File.expand_path(options.fetch(:pwd, Dir.pwd))
-      @wake     = options.fetch(:wake, File.expand_path(DEFAULT_WAKE, @pwd))
-      @root     = Pathname.new(File.expand_path(options.fetch(:root, @pwd)))
-      @mode     = options.fetch(:mode, DEFAULT_MODE)
-      @manifest = new_manifest_cache
-      @paths    = new_path_cache
+    def initialize(options = {})
+      @pwd   = File.expand_path(options.fetch(:pwd, Dir.pwd))
+      @cache = options.fetch(:cache, DEFAULT_CACHE)
+      @wake  = options.fetch(:wake, File.expand_path(DEFAULT_WAKE, @pwd))
+      @root  = Pathname.new(File.expand_path(options.fetch(:root, @pwd)))
+      @mode  = options.fetch(:mode, DEFAULT_MODE)
 
-      system(@wake, '--cache')
-      read_config
+      clear_cache
+    end
 
-      return unless options[:monitor]
+    def clear_cache
+      system(@wake, '--cache') unless @cache
 
-      listener = Listen.to(@pwd).change do |modified, added, removed|
-        all = (modified + added + removed).map &File.method(:basename)
-        system(@wake, '--cache') if (added.any? or removed.any?) and not all.include?(CACHE_FILE)
-        update! if (CONFIG_FILES & all).any?
-      end
-      listener.force_polling(true)
-      listener.start
+      @config   = nil
+      @index    = nil
+      @manifest = {}
+      @paths    = {}
+    end
+
+    def generated_file_paths
+      # TODO
     end
 
     def paths_for(group, names, options = {})
+      config = read_config
+
       build = options.fetch(:build, DEFAULT_BUILD)
-      unless @config[group].fetch('builds', {}).has_key?(build)
+      unless config.fetch(group).fetch('builds', {}).has_key?(build)
         build = DEFAULT_BUILD
       end
-      names.map { |name| @paths[group][name][build] }.flatten
+      names.map { |name| read_paths(group, name, build) }.flatten
     end
 
     def relative(path)
@@ -62,81 +64,76 @@ module Wake
     end
 
     def renderer(options = {})
+      clear_cache unless @cache
       Renderer.new(self, options)
     end
 
   private
 
-    def find_paths_for(group, name, build)
-      absolute_paths = begin
-        cache = @cache[group][name]
+    def find_paths_for(key)
+      group, name, build = *key
+
+      begin
+        index = read_index.fetch(group).fetch(name)
         if @mode.to_s == 'sources'
-          cache.fetch('sources')
+          absolute_paths = index.fetch('sources')
         else
-          [cache.fetch('targets').fetch(build)]
+          absolute_paths = [index.fetch('targets').fetch(build)]
         end
-      rescue
-        nil
+      rescue KeyError
+        raise InvalidReference, "Could not find assets: group: '#{group}', name: '#{name}', build: '#{build}'"
       end
 
-      if absolute_paths.nil?
-        raise InvalidReference, "Could not find assets, group: #{group}, name: #{name}, build: #{build}"
-      end
-
-      absolute_paths.map do |path|
-        basename = File.basename(path)
-        dirname  = File.dirname(path)
-        manifest = File.join(dirname, MANIFEST)
-
-        File.join(dirname, @manifest[manifest].fetch(basename, basename))
-      end
-    end
-
-    def new_manifest_cache
-      Hash.new do |hash, path|
-        hash[path] = File.file?(path) ? JSON.parse(File.read(path)) : {}
-      end
-    end
-
-    def new_path_cache
-      Hash.new do |h, group|
-        h[group] = Hash.new do |i, name|
-          i[name] = Hash.new do |j, build|
-            j[build] = find_paths_for(group, name, build)
-          end
-        end
-      end
+      absolute_paths.map(&method(:resolve))
     end
 
     def read_config
-      cache   = File.join(@pwd, CACHE_FILE)
+      return @config if @config
+
       wake    = File.join(@pwd, WAKE_FILE)
       package = File.join(@pwd, PACKAGE_FILE)
 
-      @config = if File.file?(wake)
-                  JSON.parse(File.read(wake))
-                elsif File.file?(package)
-                  JSON.parse(File.read(package))['wake']
-                else
-                  {}
-                end
+      if File.file?(wake)
+        config = JSON.parse(File.read(wake))
+      elsif File.file?(package)
+        config = JSON.parse(File.read(package))['wake']
+      else
+        config = {}
+      end
 
-      @cache = JSON.parse(File.read(cache))
+      @config = config if @cache
+      config
     end
 
-    def update!
-      paths = new_path_cache
-      read_config
+    def read_index
+      return @index if @index
+      path = File.join(@pwd, CACHE_FILE)
+      index = JSON.parse(File.read(path))
+      @index = index if @cache
+      index
+    end
 
-      @paths.each do |group, a|
-        a.each do |name, b|
-          b.each do |build, files|
-            paths[group][name][build]
-          end
-        end
-      end
-      @manifest = new_manifest_cache
-      @paths    = paths
+    def read_manifest(path)
+      return @manifest[path] if @manifest.has_key?(path)
+      mapping = File.file?(path) ? JSON.parse(File.read(path)) : {}
+      @manifest[path] = mapping if @cache
+      mapping
+    end
+
+    def read_paths(group, name, build)
+      key = [group, name, build]
+      return @paths[key] if @paths.has_key?(key)
+      paths = find_paths_for(key)
+      @paths[key] = paths if @cache
+      paths
+    end
+
+    def resolve(path)
+      path     = File.join(@pwd, path)
+      basename = File.basename(path)
+      dirname  = File.dirname(path)
+      manifest = File.join(dirname, MANIFEST)
+      File.join(dirname, read_manifest(manifest).fetch(basename, basename))
     end
 
   end

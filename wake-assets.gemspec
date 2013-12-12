@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name              = 'wake-assets'
-  s.version           = '0.2.0'
+  s.version           = '0.3.0'
   s.summary           = 'Renders links to assets managed by wake'
   s.author            = 'James Coglan'
   s.email             = 'jcoglan@gmail.com'
@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.files = %w[README.md] +
             Dir.glob('lib/**/*.rb')
 
-  s.add_dependency 'listen'
   s.add_dependency 'mime-types'
+  s.add_development_dependency 'sinatra'
 end
 

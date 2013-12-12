@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "wake": ""
+  },
+
+  "wake": {
+    "css": {
+      "sourceDirectory": "public/stylesheets",
+      "targetDirectory": "public/compiled",
+      "sourceRoot":      "public",
+      "builds": {
+        "min":    {},
+        "mobile": {"inline": true, "tag": "suffix"}
+      },
+      "targets": {
+        "*.css": ""
+      }
+    },
+    "binary": {
+      "sourceDirectory": "public/images",
+      "targetDirectory": "public/compiled",
+      "targets": {
+        "**/*.*": ""
+      }
+    }
+  }
+}
+
