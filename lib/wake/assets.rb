@@ -46,7 +46,21 @@ module Wake
     end
 
     def generated_file_paths
-      # TODO
+      index = read_index
+      paths = Set.new([File.join(@pwd, CACHE_FILE)])
+      index.each do |group_name, group|
+        group.each do |bundle_name, bundles|
+          bundles['targets'].each_value do |path|
+            paths.add(path)
+            manifest   = File.join(File.dirname(path), MANIFEST)
+            source_map = path + '.map'
+            [manifest, source_map].each do |file|
+              paths.add(file) if File.file?(file)
+            end
+          end
+        end
+      end
+      paths.map(&method(:resolve))
     end
 
     def paths_for(group, names, options = {})
