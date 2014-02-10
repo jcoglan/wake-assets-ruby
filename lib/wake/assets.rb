@@ -47,7 +47,7 @@ module Wake
 
     def generated_file_paths
       index = read_index
-      paths = Set.new([File.join(@pwd, CACHE_FILE)])
+      paths = Set.new([CACHE_FILE])
       index.each do |group_name, group|
         group.each do |bundle_name, bundles|
           bundles['targets'].each_value do |path|
@@ -143,7 +143,7 @@ module Wake
     end
 
     def resolve(path)
-      path     = File.join(@pwd, path)
+      path     = File.expand_path(path, @pwd)
       basename = File.basename(path)
       dirname  = File.dirname(path)
       manifest = File.join(dirname, MANIFEST)
