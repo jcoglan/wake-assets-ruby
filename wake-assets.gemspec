@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name              = 'wake-assets'
-  s.version           = '0.3.0'
+  s.version           = '0.3.1'
   s.summary           = 'Ruby HTML helper for assets managed by wake'
   s.author            = 'James Coglan'
   s.email             = 'jcoglan@gmail.com'
